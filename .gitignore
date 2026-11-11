@@ -1,0 +1,13 @@
+# Simulation output
+simulation/*
+!simulation/.gitkeep
+
+# Compiled simulation / waveform files
+*.vvp
+*.vcd
+*.fst
+*.out
+
+# macOS / editor
+.DS_Store
+.vscode/
