@@ -85,4 +85,4 @@ The testbench checks these automatically and prints `ALL TESTS PASSED` on succes
 - Memories hold 256 words; larger addresses wrap around.
 - Unsupported opcodes behave like a NOP. No exceptions, overflow detection or delay slots.
 - Reset is synchronous and active-high; it only resets the PC. Registers and memories are zeroed at simulation start.
-# Single-Cycle-MIPS-Processor-with-Memory-Interface
+
