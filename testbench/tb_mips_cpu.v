@@ -1,7 +1,9 @@
 // -----------------------------------------------------------------------------
 // Testbench for the single-cycle MIPS CPU
-// Run from the MIPS-Processor/ folder so the relative paths below resolve:
-//   iverilog -o simulation/mips_cpu.vvp src/*.v testbench/tb_mips_cpu.v
+// Runs programs/basic_test.mem (every instruction once) and checks the final
+// register/memory values.
+// Run from the repository root so the relative paths below resolve:
+//   iverilog -g2001 -o simulation/mips_cpu.vvp src/*.v testbench/tb_mips_cpu.v
 //   vvp simulation/mips_cpu.vvp
 // -----------------------------------------------------------------------------
 `timescale 1ns/1ps
@@ -15,9 +17,15 @@ module tb_mips_cpu;
     integer cycle;
 
     // Device under test
-    mips_cpu dut (
-        .clk  (clk),
-        .reset(reset)
+    // The program is loaded by the instruction memory itself (IMEM_FILE).
+    mips_cpu #(.IMEM_FILE("programs/basic_test.mem")) dut (
+        .clk            (clk),
+        .reset          (reset),
+        .dbg_pc         (),
+        .dbg_instruction(),
+        .dbg_alu_result (),
+        .dbg_mem_write  (),
+        .dbg_mem_wdata  ()
     );
 
     // 10 ns clock period
@@ -29,7 +37,7 @@ module tb_mips_cpu;
     always @(negedge clk) begin
         if (!reset) begin
             $display("cycle %0d | PC=0x%08h | instr=0x%08h | ALU=0x%08h | next PC=0x%08h",
-                     cycle, dut.pc_current, dut.instruction, dut.alu_result, dut.next_pc);
+                     cycle, dut.core.pc_current, dut.core.instruction, dut.core.alu_result, dut.core.next_pc);
             cycle = cycle + 1;
         end
     end
@@ -40,10 +48,10 @@ module tb_mips_cpu;
         input [31:0]  expected;
         input [8*6:1] name;
         begin
-            if (dut.rf.regs[num] === expected)
-                $display("  PASS  %0s = %0d", name, dut.rf.regs[num]);
+            if (dut.core.rf.regs[num] === expected)
+                $display("  PASS  %0s = %0d", name, dut.core.rf.regs[num]);
             else begin
-                $display("  FAIL  %0s = %0d (expected %0d)", name, dut.rf.regs[num], expected);
+                $display("  FAIL  %0s = %0d (expected %0d)", name, dut.core.rf.regs[num], expected);
                 errors = errors + 1;
             end
         end
@@ -57,9 +65,6 @@ module tb_mips_cpu;
         $dumpfile("simulation/mips_cpu.vcd");
         $dumpvars(0, tb_mips_cpu);
 
-        // Load the program into instruction memory
-        $readmemh("programs/program.mem", dut.imem.memory);
-
         // Apply reset for two clock edges, then release it
         reset = 1'b1;
         repeat (2) @(posedge clk);
@@ -71,15 +76,15 @@ module tb_mips_cpu;
 
         $display("");
         $display("=============== Final Register Values ===============");
-        $display("$zero = %0d", dut.rf.regs[0]);
-        $display("$t0   = %0d", dut.rf.regs[8]);
-        $display("$t1   = %0d", dut.rf.regs[9]);
-        $display("$t2   = %0d", dut.rf.regs[10]);
-        $display("$t3   = %0d", dut.rf.regs[11]);
-        $display("$t4   = %0d", dut.rf.regs[12]);
-        $display("$t5   = %0d", dut.rf.regs[13]);
-        $display("$t6   = %0d", dut.rf.regs[14]);
-        $display("$t7   = %0d", dut.rf.regs[15]);
+        $display("$zero = %0d", dut.core.rf.regs[0]);
+        $display("$t0   = %0d", dut.core.rf.regs[8]);
+        $display("$t1   = %0d", dut.core.rf.regs[9]);
+        $display("$t2   = %0d", dut.core.rf.regs[10]);
+        $display("$t3   = %0d", dut.core.rf.regs[11]);
+        $display("$t4   = %0d", dut.core.rf.regs[12]);
+        $display("$t5   = %0d", dut.core.rf.regs[13]);
+        $display("$t6   = %0d", dut.core.rf.regs[14]);
+        $display("$t7   = %0d", dut.core.rf.regs[15]);
 
         $display("");
         $display("=============== Data Memory ===============");

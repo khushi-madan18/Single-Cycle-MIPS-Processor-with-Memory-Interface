@@ -1,0 +1,30 @@
+
+14. Printing statistics.
+
+=== mips_cpu ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      665 wires
+     1519 wire bits
+       49 public wires
+      301 public wire bits
+        7 ports
+      131 port bits
+      640 cells
+       10   $scopeinfo
+        1   BUFG
+       35   CARRY4
+       48   FDRE
+        2   IBUF
+        1   INV
+      104   LUT2
+       83   LUT3
+       88   LUT4
+       57   LUT5
+       37   LUT6
+        1   MUXF7
+      129   OBUF
+       32   RAM256X1S
+       12   RAM32M
+

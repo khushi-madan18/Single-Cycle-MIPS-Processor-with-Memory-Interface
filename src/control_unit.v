@@ -13,6 +13,8 @@
 // ("x" entries are set to 0 here to keep things simple.)
 // ALUOp: 00 = add, 01 = subtract, 10 = look at the funct field.
 // -----------------------------------------------------------------------------
+`timescale 1ns/1ps
+
 module control_unit (
     input      [5:0] opcode,
     output reg       reg_dst,     // 1: dest reg = rd (R-type), 0: dest reg = rt

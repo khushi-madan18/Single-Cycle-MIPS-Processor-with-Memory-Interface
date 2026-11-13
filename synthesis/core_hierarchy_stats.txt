@@ -1,0 +1,194 @@
+
+11. Printing statistics.
+
+=== mips_core ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       39 wires
+      605 wire bits
+       39 public wires
+      605 public wire bits
+        9 ports
+      164 port bits
+       69 cells
+       69   $_MUX_
+        7 submodules
+        1   alu
+        1   alu_control
+        1   branch_jump_logic
+        1   control_unit
+        1   pc
+        1   register_file
+        1   sign_extension
+
+=== branch_jump_logic ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      222 wires
+      433 wire bits
+       10 public wires
+      221 public wire bits
+        8 ports
+      157 port bits
+      274 cells
+        6   $_ANDNOT_
+       57   $_AND_
+       52   $_MUX_
+       37   $_NAND_
+        1   $_NOR_
+        3   $_NOT_
+        4   $_ORNOT_
+       29   $_OR_
+       32   $_XNOR_
+       53   $_XOR_
+
+=== alu_control ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       16 wires
+       25 wire bits
+        3 public wires
+       12 public wire bits
+        3 ports
+       12 port bits
+       16 cells
+        4   $_ANDNOT_
+        2   $_AND_
+        4   $_NAND_
+        1   $_NOR_
+        2   $_NOT_
+        1   $_ORNOT_
+        2   $_OR_
+
+=== alu ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      591 wires
+      687 wire bits
+        5 public wires
+      101 public wire bits
+        5 ports
+      101 port bits
+      619 cells
+        9   $_ANDNOT_
+      142   $_AND_
+        2   $_MUX_
+      264   $_NAND_
+        3   $_NOR_
+       71   $_ORNOT_
+       94   $_OR_
+       13   $_XNOR_
+       21   $_XOR_
+
+=== sign_extension ===
+
+        +----------Local Count, excluding submodules.
+        | 
+        2 wires
+       48 wire bits
+        2 public wires
+       48 public wire bits
+        2 ports
+       48 port bits
+
+=== register_file ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     3506 wires
+     4665 wire bits
+       41 public wires
+     1169 public wire bits
+        8 ports
+      113 port bits
+     4553 cells
+      260   $_ANDNOT_
+      501   $_AND_
+     1024   $_DFFE_PP_
+     1280   $_MUX_
+      707   $_NAND_
+      391   $_NOR_
+        5   $_NOT_
+      320   $_ORNOT_
+       65   $_OR_
+
+=== control_unit ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       24 wires
+       30 wire bits
+       10 public wires
+       16 public wire bits
+       10 ports
+       16 port bits
+       21 cells
+        6   $_ANDNOT_
+        8   $_AND_
+        1   $_NAND_
+        3   $_NOR_
+        2   $_ORNOT_
+        1   $_OR_
+
+=== pc ===
+
+        +----------Local Count, excluding submodules.
+        | 
+        4 wires
+       66 wire bits
+        4 public wires
+       66 public wire bits
+        4 ports
+       66 port bits
+       32 cells
+       32   $_SDFF_PP0_
+
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        | 
+     5584 mips_core
+      619 alu
+       16 alu_control
+      274 branch_jump_logic
+       21 control_unit
+       32 pc
+     4553 register_file
+
+        +----------Count including submodules.
+        | 
+     4404 wires
+     6559 wire bits
+      114 public wires
+     2238 public wire bits
+       49 ports
+      677 port bits
+        - memories
+        - memory bits
+        - processes
+     5584 cells
+      285   $_ANDNOT_
+      710   $_AND_
+     1024   $_DFFE_PP_
+     1403   $_MUX_
+     1013   $_NAND_
+      399   $_NOR_
+       10   $_NOT_
+      398   $_ORNOT_
+      191   $_OR_
+       32   $_SDFF_PP0_
+       45   $_XNOR_
+       74   $_XOR_
+        7 submodules
+        1   alu
+        1   alu_control
+        1   branch_jump_logic
+        1   control_unit
+        1   pc
+        1   register_file
+        1   sign_extension
+

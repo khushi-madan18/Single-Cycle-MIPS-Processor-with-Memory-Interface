@@ -1,0 +1,53 @@
+Assembly -> machine code conversion listing
+==============================================================================
+0x00000000  addi $t0, $zero, 5                ->  0x20080005   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            001000 | 00000 | 01000 | 0000000000000101
+            opcode=8, rs=0, rt=8, imm=5
+0x00000004  addi $t1, $zero, 10               ->  0x2009000A   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            001000 | 00000 | 01001 | 0000000000001010
+            opcode=8, rs=0, rt=9, imm=10
+0x00000008  add  $t2, $t0, $t1                ->  0x01095020   (R-type)
+            opcode |   rs  |   rt  |   rd  | shamt | funct 
+            000000 | 01000 | 01001 | 01010 | 00000 | 100000
+            opcode=0, rs=8, rt=9, rd=10, shamt=0, funct=32
+0x0000000C  sw   $t2, 0($zero)                ->  0xAC0A0000   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            101011 | 00000 | 01010 | 0000000000000000
+            opcode=43, rs=0, rt=10, imm=0
+0x00000010  lw   $t3, 0($zero)                ->  0x8C0B0000   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            100011 | 00000 | 01011 | 0000000000000000
+            opcode=35, rs=0, rt=11, imm=0
+0x00000014  beq  $t2, $t3, skip1              ->  0x114B0001   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            000100 | 01010 | 01011 | 0000000000000001
+            opcode=4, rs=10, rt=11, imm=1
+0x00000018  addi $t4, $zero, 99               ->  0x200C0063   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            001000 | 00000 | 01100 | 0000000001100011
+            opcode=8, rs=0, rt=12, imm=99
+skip1:
+0x0000001C  addi $t5, $zero, 7                ->  0x200D0007   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            001000 | 00000 | 01101 | 0000000000000111
+            opcode=8, rs=0, rt=13, imm=7
+0x00000020  j    skip2                        ->  0x0800000A   (J-type)
+            opcode |           target          
+            000010 | 00000000000000000000001010
+            opcode=2, target=10
+0x00000024  addi $t6, $zero, 88               ->  0x200E0058   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            001000 | 00000 | 01110 | 0000000001011000
+            opcode=8, rs=0, rt=14, imm=88
+skip2:
+0x00000028  addi $t7, $zero, 77               ->  0x200F004D   (I-type)
+            opcode |   rs  |   rt  |    immediate    
+            001000 | 00000 | 01111 | 0000000001001101
+            opcode=8, rs=0, rt=15, imm=77
+halt:
+0x0000002C  j    halt                         ->  0x0800000B   (J-type)
+            opcode |           target          
+            000010 | 00000000000000000000001011
+            opcode=2, target=11

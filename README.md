@@ -1,6 +1,6 @@
 # Single-Cycle MIPS Processor with Memory Interface
 
-A 32-bit single-cycle MIPS processor written in Verilog-2001 (Icarus Verilog compatible). Every instruction is fetched, decoded, executed and written back in one clock cycle.
+A 32-bit single-cycle MIPS processor written in Verilog-2001 (Icarus Verilog compatible). Every instruction is fetched, decoded, executed and written back in one clock cycle. The processor core talks to a separate instruction memory and data memory through a **memory interface** (Harvard architecture).
 
 ## Supported instructions
 
@@ -16,73 +16,144 @@ A 32-bit single-cycle MIPS processor written in Verilog-2001 (Icarus Verilog com
 ## Folder structure
 
 ```
-MIPS-Processor/
+.
 ├── src/            Verilog design modules (one per file)
-├── programs/       program.mem – machine code loaded into instruction memory
-├── testbench/      tb_mips_cpu.v – self-checking testbench
-├── simulation/     generated .vvp and .vcd files (git-ignored)
-├── docs/           architecture.md – datapath, control table, encodings
-└── README.md
+├── testbench/      unit, system and generic program testbenches
+├── programs/       sample programs: .asm source, .mem machine code, .lst conversion listing
+├── tools/          helper scripts: assembler, test runner, waveform plotter, Logisim builder (see tools/README.md)
+├── ui/             interactive web simulator (open ui/index.html)
+├── logisim/        the Logisim circuit (.circ) to open in Logisim-evolution + program images
+├── synthesis/      Yosys scripts and the synthesis report
+├── docs/           architecture.md, waveforms/ and logisim/ (circuit diagrams)
+├── simulation/     generated .vvp / .vcd / trace files (git-ignored)
+└── Makefile
 ```
 
 ## Modules
 
 | File | Module | Role |
 |---|---|---|
+| `mips_cpu.v` | `mips_cpu` | **Top level**: core + instruction memory + data memory, debug ports |
+| `mips_core.v` | `mips_core` | Datapath + control; instruction and data memory interfaces |
 | `pc.v` | `pc` | Program counter register |
-| `instruction_memory.v` | `instruction_memory` | 256-word ROM-style memory, async read |
+| `instruction_memory.v` | `instruction_memory` | 256-word ROM-style memory, async read, loaded from `IMEM_FILE` |
 | `control_unit.v` | `control_unit` | Opcode → control signals |
 | `register_file.v` | `register_file` | 32×32 registers, 2 async reads, 1 sync write, `$zero` hard-wired |
 | `sign_extension.v` | `sign_extension` | 16 → 32 bit sign extension |
 | `alu.v` | `alu` | ADD, SUB, AND, OR, SLT + zero flag |
 | `alu_control.v` | `alu_control` | ALUOp + funct → ALU operation |
-| `data_memory.v` | `data_memory` | 256-word RAM, async read, sync write |
+| `data_memory.v` | `data_memory` | 256-word RAM, async read, sync write, optional `DMEM_FILE` |
 | `branch_jump_logic.v` | `branch_jump_logic` | PC+4, branch target, jump target, next-PC mux |
-| `mips_cpu.v` | `mips_cpu` | Top level, connects everything |
 
-## How to run
+## Requirements
 
-You need [Icarus Verilog](https://steveicarus.github.io/iverilog/) (`brew install icarus-verilog` on macOS, `sudo apt install iverilog` on Ubuntu) and optionally GTKWave.
+* [Icarus Verilog](https://steveicarus.github.io/iverilog/): `brew install icarus-verilog` (macOS) or `sudo apt install iverilog` (Ubuntu)
+* Python 3 (standard library only), for the assembler and the test runner
+* Optional: [Yosys](https://github.com/YosysHQ/yosys) for synthesis (`brew install yosys`), and GTKWave or [Surfer](https://surfer-project.org/) to view `.vcd` waveforms
 
-Run these from inside the `MIPS-Processor/` folder, because the testbench uses relative paths:
+All commands below are run from the repository root.
+
+## Quick start
 
 ```bash
-iverilog -g2001 -o simulation/mips_cpu.vvp src/*.v testbench/tb_mips_cpu.v
-vvp simulation/mips_cpu.vvp
-gtkwave simulation/mips_cpu.vcd      # optional: view waveforms
+make test                     # run everything: unit tests + 4 programs checked against the golden model
+make wave PROG=array_sum      # simulate one program and draw docs/waveforms/array_sum.svg
+make synth                    # synthesis report (see synthesis/synthesis_report.md)
 ```
 
-Useful signals to add in GTKWave: `dut.pc_current`, `dut.instruction`, `dut.alu_result`, `dut.next_pc`, and the control signals under `dut`.
+Without `make`:
 
-## Test program
+```bash
+python3 tools/run_tests.py
+iverilog -g2001 -o simulation/mips_cpu.vvp src/*.v testbench/tb_mips_cpu.v
+vvp simulation/mips_cpu.vvp
+```
 
-`programs/program.mem` (word addresses; PC = 4 × address):
+## Interactive simulator (web UI)
 
-| Addr | Machine code | Assembly | Effect |
-|---|---|---|---|
-| 0 | `20080005` | `ADDI $t0,$zero,5` | $t0 = 5 |
-| 1 | `2009000A` | `ADDI $t1,$zero,10` | $t1 = 10 |
-| 2 | `01095020` | `ADD $t2,$t0,$t1` | $t2 = 15 |
-| 3 | `AC0A0000` | `SW $t2,0($zero)` | mem[0] = 15 |
-| 4 | `8C0B0000` | `LW $t3,0($zero)` | $t3 = 15 |
-| 5 | `114B0001` | `BEQ $t2,$t3,1` | taken → skips addr 6 |
-| 6 | `200C0063` | `ADDI $t4,$zero,99` | skipped ($t4 stays 0) |
-| 7 | `200D0007` | `ADDI $t5,$zero,7` | $t5 = 7 |
-| 8 | `0800000A` | `J 10` | jumps to addr 10, skipping 9 |
-| 9 | `200E0058` | `ADDI $t6,$zero,88` | skipped ($t6 stays 0) |
-| 10 | `200F004D` | `ADDI $t7,$zero,77` | $t7 = 77 |
-| 11 | `0800000B` | `J 11` | infinite loop (acts as halt) |
+`ui/` is a browser-based simulator for this processor. It needs no build step or server-side code:
 
-Expected final state: `$t0=5, $t1=10, $t2=15, $t3=15, $t4=0, $t5=7, $t6=0, $t7=77, mem[0]=15`.
+```bash
+python3 -m http.server 8765 --directory ui     # then open http://localhost:8765
+```
 
-The testbench checks these automatically and prints `ALL TESTS PASSED` on success.
+(Opening `ui/index.html` directly also works.)
 
-> The `$readmemh` warning "Not enough words in the file for the requested range" is expected: the program has 12 words but the memory has 256.
+**Live version:** https://khushi-madan18.github.io/Single-Cycle-MIPS-Processor-with-Memory-Interface/. It is published by `.github/workflows/pages.yml` on every push to `main` that changes `ui/`. One-time setup by the repo owner: **Settings → Pages → Source: GitHub Actions**.
+
+* **Editor**: syntax highlighting, assembles as you type, inline errors, breakpoints (click a line number), sample programs, and loading your own `.asm` file.
+* **Run controls**: step, step back, run with adjustable speed, run to halt, reset. Keyboard: `F10`/`→` step, `←` back, `Space` run, `F8` to halt.
+* **Animated datapath**: the instruction flows through IF → ID → EX → MEM → WB. Active wires and blocks light up, control signals show their values, and live values sit on the wires. Hover any block to see which Verilog module it is.
+* **Conversion**: every step from assembly text to tokens, register/label resolution, instruction format, bit fields, 32-bit binary and hex; then how the hardware decodes it into control signals, reads registers, sign-extends, computes in the ALU, accesses memory, writes back and picks the next PC.
+* **Registers / Data memory** (reads and writes highlighted), **Stats** (cycles, CPI, instruction mix), **Machine Code** listing (download `.mem` files for the Verilog testbench), **Cycles** timeline.
+* **RTL Verification**: each executed cycle is compared with the real Verilog simulation trace (`ui/data/rtl_traces.js`, exported from `testbench/tb_program.v`). For your own programs, run `make sim PROG=name` and load `simulation/name_trace.txt`.
+
+`ui/js/isa.js` is a JavaScript port of `tools/mips_asm.py`. `tools/run_tests.py` checks that it matches the Verilog RTL on every cycle of every sample program (`tools/check_ui_model.js`).
+
+## From assembly to machine code
+
+`tools/mips_asm.py` is a two-pass assembler for the supported instruction set. It understands labels, `.data`/`.word` sections and the `nop`/`halt` pseudo-instructions.
+
+```bash
+python3 tools/mips_asm.py programs/array_sum.asm --run   # assemble + run on the golden model
+python3 tools/mips_asm.py --explain 0x8C0B0000           # decode one 32-bit word
+```
+
+Each program produces:
+
+* `programs/<name>.mem`: instruction-memory image, loaded by `$readmemh`
+* `programs/<name>_data.mem`: data-memory image (when the program has a `.data` section)
+* `programs/<name>.lst`: the conversion listing, showing for every instruction its format and fields (opcode / rs / rt / rd / shamt / funct or immediate / target), the 32-bit binary and the hex word
+
+Example from `array_sum.lst`:
+
+```
+0x00000004  lw   $t1, n($zero)               ->  0x8C090020   (I-type)
+            opcode |   rs  |   rt  |    immediate
+            100011 | 00000 | 01001 | 0000000000100000
+            opcode=35, rs=0, rt=9, imm=32
+```
+
+## Sample programs
+
+| Program | What it does | Instr. | Cycles | Result |
+|---|---|---:|---:|---|
+| `basic_test.asm` | every instruction once (the team's original test program) | 12 | 10 | `$t7 = 77`, `mem[0] = 15` |
+| `array_sum.asm` | sum of 8 signed words | 11 | 54 | `110` |
+| `max_search.asm` | maximum of 10 signed words (SLT + BEQ) | 15 | 73 | `92` |
+| `factorial.asm` | 6! using multiplication by repeated addition | 17 | 128 | `720` |
+
+Each `.asm` file lists its expected results as `# EXPECT` lines, which the test runner checks.
+
+## Verification
+
+`python3 tools/run_tests.py` runs:
+
+1. **Unit tests**: `tb_alu.v` (every ALU operation, signed SLT, overflow wrap, zero flag, ALU-control decoding) and `tb_control_unit.v` (all 9 control signals for every opcode).
+2. **System test**: `tb_mips_cpu.v`, the original self-checking test, run on `programs/basic_test.mem`.
+3. **Program tests**: each `programs/*.asm` is assembled, run on the Python **golden model**, and simulated on the Verilog CPU with `tb_program.v`. The runner then compares, **for every clock cycle**, the PC, instruction, all control signals, ALU control and result, zero flag, write-back register and data, memory-write enable and data, and the next PC. It also compares the final 32 registers and 256 data-memory words, and checks the `# EXPECT` values.
+
+The checker was itself tested by deliberately breaking the control unit (SW also writing a register). The regression flagged the exact cycle and signal.
+
+Each program run also writes `simulation/<name>.vcd` (full waveform), `simulation/<name>_trace.txt` (per-cycle log) and `simulation/<name>_state.txt` (final state). `docs/waveforms/*.svg` are timing diagrams drawn from these traces.
+
+## Logisim circuit
+
+[`logisim/mips_single_cycle.circ`](logisim/mips_single_cycle.circ) is a working Logisim-evolution model of the processor, drawn like the textbook datapath with real wires. It is built from standard gates, comparators, adders, multiplexers, registers, a decoder, ROM and RAM, with one subcircuit per Verilog module (`control_unit`, `alu_control`, `alu`, `register_file`). Open it in Logisim-evolution and press Ctrl+T to step one clock cycle. Diagrams of all circuits are in [`docs/logisim/`](docs/logisim/).
+
+![Logisim datapath](docs/logisim/main.png)
+
+`python3 tools/logisim/verify_logisim.py` runs all 4 sample programs in Logisim (headless) and checks that every clock cycle and the final data memory match the Verilog simulation (265/265 cycles). It is part of `tools/run_tests.py` when Logisim is installed. See [`logisim/README.md`](logisim/README.md).
+
+## Synthesis
+
+See [`synthesis/synthesis_report.md`](synthesis/synthesis_report.md). In short: the core is 4,795 generic gates and 1,056 flip-flops. On a Xilinx Artix-7 the complete system needs about 370 LUTs, 12 RAM32M cells (register file) and 32 RAM256X1S cells (data memory), well under 2 % of an XC7A35T.
 
 ## Notes and limitations
 
 - Memory accesses must be word-aligned (the low two address bits are ignored).
 - Memories hold 256 words; larger addresses wrap around.
 - Unsupported opcodes behave like a NOP. No exceptions, overflow detection or delay slots.
-- Reset is synchronous and active-high; it only resets the PC. Registers and memories are zeroed at simulation start.
-
+- Reset is synchronous and active-high; it only resets the PC. Registers and memories are initialised at start-up.
+- A program "halts" by jumping to itself (`halt` pseudo-instruction); the testbench detects this.
+- Assembler-generated `.mem` files are padded to 256 words so `$readmemh` fills the whole memory.

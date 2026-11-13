@@ -10,6 +10,8 @@
 //  0110         SUB
 //  0111         SLT (signed: result = 1 if a < b, else 0)
 // -----------------------------------------------------------------------------
+`timescale 1ns/1ps
+
 module alu (
     input      [31:0] a,
     input      [31:0] b,

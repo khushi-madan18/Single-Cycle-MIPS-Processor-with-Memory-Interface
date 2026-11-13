@@ -1,0 +1,12 @@
+# Generic (technology-independent) synthesis of the MIPS core.
+# Run from the repository root:   yosys -s synthesis/synth_core.ys
+read_verilog src/pc.v src/control_unit.v src/register_file.v src/sign_extension.v
+read_verilog src/alu.v src/alu_control.v src/branch_jump_logic.v src/mips_core.v
+hierarchy -check -top mips_core
+synth -top mips_core
+tee -o synthesis/core_hierarchy_stats.txt stat
+flatten
+synth -top mips_core
+tee -o synthesis/core_flat_stats.txt stat
+tee -o synthesis/core_logic_depth.txt ltp -noff
+write_verilog -noattr synthesis/mips_core_netlist.v

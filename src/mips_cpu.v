@@ -1,132 +1,78 @@
 // -----------------------------------------------------------------------------
-// Top-Level Single-Cycle MIPS CPU
-// Wires together all modules. Every instruction finishes in one clock cycle.
+// Top-Level Single-Cycle MIPS System
+// mips_core (datapath + control) connected to an instruction memory and a
+// data memory through the core's memory interface.
 //
-// Instruction fields (MIPS32):
-//   [31:26] opcode | [25:21] rs | [20:16] rt | [15:11] rd | [10:6] shamt | [5:0] funct
-//   [15:0]  immediate (I-type)  | [25:0] jump address (J-type)
+//            +-----------------------------+
+//            |          mips_core          |
+//   clk ---->|                             |
+//   reset -->|  imem_addr  ---> +------+   |
+//            |  imem_rdata <--- | IMEM |   |
+//            |                  +------+   |
+//            |  dmem_addr/wdata/we/re --->  +------+
+//            |  dmem_rdata <--------------- | DMEM |
+//            +-----------------------------+------+
+//
+// Parameters:
+//   IMEM_FILE - hex file loaded into instruction memory ("" = leave empty)
+//   DMEM_FILE - hex file loaded into data memory        ("" = all zeros)
+//
+// The debug outputs make the important internal values visible on the
+// top-level ports (useful for an FPGA demo: connect them to LEDs / 7-segment
+// displays, and they stop synthesis from optimising the design away).
 // -----------------------------------------------------------------------------
-module mips_cpu (
-    input clk,
-    input reset
+`timescale 1ns/1ps
+
+module mips_cpu #(
+    parameter IMEM_FILE = "",
+    parameter DMEM_FILE = ""
+) (
+    input         clk,
+    input         reset,
+
+    // Debug / observation ports
+    output [31:0] dbg_pc,          // current PC
+    output [31:0] dbg_instruction, // current instruction
+    output [31:0] dbg_alu_result,  // ALU result (also the data-memory address)
+    output        dbg_mem_write,   // a store is happening this cycle
+    output [31:0] dbg_mem_wdata    // value being stored
 );
 
-    // ---------------- Wires ----------------
-    wire [31:0] pc_current, pc_plus4, next_pc;
-    wire [31:0] instruction;
+    // Memory-interface wires
+    wire [31:0] imem_addr, imem_rdata;
+    wire [31:0] dmem_addr, dmem_wdata, dmem_rdata;
+    wire        dmem_we, dmem_re;
 
-    // Instruction fields
-    wire [5:0]  opcode = instruction[31:26];
-    wire [4:0]  rs     = instruction[25:21];
-    wire [4:0]  rt     = instruction[20:16];
-    wire [4:0]  rd     = instruction[15:11];
-    wire [5:0]  funct  = instruction[5:0];
-    wire [15:0] imm16  = instruction[15:0];
-    wire [25:0] jaddr  = instruction[25:0];
-
-    // Control signals
-    wire        reg_dst, alu_src, mem_to_reg, reg_write;
-    wire        mem_read, mem_write, branch, jump;
-    wire [1:0]  alu_op;
-    wire [3:0]  alu_ctrl;
-
-    // Datapath values
-    wire [4:0]  write_reg;
-    wire [31:0] read_data1, read_data2;
-    wire [31:0] imm_ext;
-    wire [31:0] alu_b;
-    wire [31:0] alu_result;
-    wire        zero;
-    wire [31:0] mem_data;
-    wire [31:0] write_back;
-
-    // ---------------- Fetch ----------------
-    pc pc_reg (
-        .clk    (clk),
-        .reset  (reset),
-        .next_pc(next_pc),
-        .pc_out (pc_current)
-    );
-
-    instruction_memory imem (
-        .addr       (pc_current),
-        .instruction(instruction)
-    );
-
-    // ---------------- Decode ----------------
-    control_unit ctrl (
-        .opcode    (opcode),
-        .reg_dst   (reg_dst),
-        .alu_src   (alu_src),
-        .mem_to_reg(mem_to_reg),
-        .reg_write (reg_write),
-        .mem_read  (mem_read),
-        .mem_write (mem_write),
-        .branch    (branch),
-        .jump      (jump),
-        .alu_op    (alu_op)
-    );
-
-    // Destination register: rd for R-type, rt for I-type
-    assign write_reg = reg_dst ? rd : rt;
-
-    register_file rf (
+    mips_core core (
         .clk       (clk),
-        .reg_write (reg_write),
-        .read_reg1 (rs),
-        .read_reg2 (rt),
-        .write_reg (write_reg),
-        .write_data(write_back),
-        .read_data1(read_data1),
-        .read_data2(read_data2)
+        .reset     (reset),
+        .imem_addr (imem_addr),
+        .imem_rdata(imem_rdata),
+        .dmem_addr (dmem_addr),
+        .dmem_wdata(dmem_wdata),
+        .dmem_we   (dmem_we),
+        .dmem_re   (dmem_re),
+        .dmem_rdata(dmem_rdata)
     );
 
-    sign_extension sext (
-        .imm_in (imm16),
-        .imm_out(imm_ext)
+    instruction_memory #(.MEM_FILE(IMEM_FILE)) imem (
+        .addr       (imem_addr),
+        .instruction(imem_rdata)
     );
 
-    // ---------------- Execute ----------------
-    alu_control actrl (
-        .alu_op     (alu_op),
-        .funct      (funct),
-        .alu_control(alu_ctrl)
-    );
-
-    // ALU 2nd operand: register (R-type, BEQ) or immediate (LW, SW, ADDI)
-    assign alu_b = alu_src ? imm_ext : read_data2;
-
-    alu alu_unit (
-        .a          (read_data1),
-        .b          (alu_b),
-        .alu_control(alu_ctrl),
-        .result     (alu_result),
-        .zero       (zero)
-    );
-
-    // ---------------- Memory ----------------
-    data_memory dmem (
+    data_memory #(.MEM_FILE(DMEM_FILE)) dmem (
         .clk       (clk),
-        .mem_read  (mem_read),
-        .mem_write (mem_write),
-        .addr      (alu_result),
-        .write_data(read_data2),
-        .read_data (mem_data)
+        .mem_read  (dmem_re),
+        .mem_write (dmem_we),
+        .addr      (dmem_addr),
+        .write_data(dmem_wdata),
+        .read_data (dmem_rdata)
     );
 
-    // ---------------- Write-back ----------------
-    assign write_back = mem_to_reg ? mem_data : alu_result;
-
-    // ---------------- Next PC ----------------
-    branch_jump_logic bj (
-        .pc       (pc_current),
-        .imm_ext  (imm_ext),
-        .jump_addr(jaddr),
-        .branch   (branch),
-        .zero     (zero),
-        .jump     (jump),
-        .pc_plus4 (pc_plus4),
-        .next_pc  (next_pc)
-    );
+    assign dbg_pc          = imem_addr;
+    assign dbg_instruction = imem_rdata;
+    assign dbg_alu_result  = dmem_addr;
+    assign dbg_mem_write   = dmem_we;
+    assign dbg_mem_wdata   = dmem_wdata;
 
 endmodule

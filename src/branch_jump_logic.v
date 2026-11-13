@@ -9,6 +9,8 @@
 //           = branch_target  if branch AND zero   (BEQ taken)
 //           = pc_plus4       otherwise
 // -----------------------------------------------------------------------------
+`timescale 1ns/1ps
+
 module branch_jump_logic (
     input  [31:0] pc,            // current PC
     input  [31:0] imm_ext,       // sign-extended 16-bit immediate

@@ -11,3 +11,12 @@ simulation/*
 # macOS / editor
 .DS_Store
 .vscode/
+
+# Synthesis by-products (regenerate with: yosys -s synthesis/synth_core.ys)
+synthesis/*.log
+synthesis/*_netlist.v
+
+# Python
+__pycache__/
+
+.claude

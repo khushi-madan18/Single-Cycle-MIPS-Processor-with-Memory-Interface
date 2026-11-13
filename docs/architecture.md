@@ -27,6 +27,22 @@
 
 All logic between the PC register and the register-file / data-memory write ports is combinational. State is only updated on the rising clock edge: PC, register file and data memory.
 
+### Core and memory interface
+
+The datapath and control live in `mips_core`; the two memories sit outside it in `mips_cpu`:
+
+| Core port | Direction | Meaning |
+|---|---|---|
+| `imem_addr[31:0]` | out | byte address of the instruction (= PC) |
+| `imem_rdata[31:0]` | in | instruction word |
+| `dmem_addr[31:0]` | out | byte address for LW/SW (= ALU result) |
+| `dmem_wdata[31:0]` | out | store data (= register `rt`) |
+| `dmem_we` | out | write enable (MemWrite) |
+| `dmem_re` | out | read enable (MemRead) |
+| `dmem_rdata[31:0]` | in | load data |
+
+Because of this split the same core could be attached to FPGA block RAM or to a bus without changing it, and synthesising the core alone gives numbers that don't depend on the program.
+
 ## 2. Instruction formats (MIPS32)
 
 ```
@@ -96,4 +112,11 @@ Worked example from the test program:
 
 ## 7. Verification
 
-`testbench/tb_mips_cpu.v` generates a 10 ns clock, applies reset, loads `programs/program.mem` with `$readmemh`, runs 20 cycles, prints a per-cycle trace and the final registers/memory, checks the expected values, and writes `simulation/mips_cpu.vcd`.
+| Level | File | What is checked |
+|---|---|---|
+| Unit | `testbench/tb_alu.v` | every ALU operation, signed SLT, wrap-around, zero flag, ALU-control decoding |
+| Unit | `testbench/tb_control_unit.v` | all 9 control outputs for every opcode and for an unknown opcode |
+| System | `testbench/tb_mips_cpu.v` | `programs/basic_test.mem`, final registers and memory |
+| Program | `testbench/tb_program.v` + `tools/run_tests.py` | each `programs/*.asm` compared cycle by cycle with the Python golden model (`tools/mips_asm.py`) |
+
+`tb_program.v` runs a program until it reaches the `halt` loop (an instruction whose next PC equals its own PC). It writes a per-cycle trace of the datapath and control signals, the final register and memory state, and a VCD waveform. `run_tests.py` checks each traced cycle against the golden model **and** against the control table in section 3, so both the datapath results and the control signals are verified on every instruction executed.

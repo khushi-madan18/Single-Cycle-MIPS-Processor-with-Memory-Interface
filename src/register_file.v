@@ -3,6 +3,8 @@
 // 32 registers x 32 bits. Two asynchronous read ports, one synchronous write
 // port. Register $zero (register 0) always reads 0 and can never be written.
 // -----------------------------------------------------------------------------
+`timescale 1ns/1ps
+
 module register_file (
     input         clk,
     input         reg_write,        // write enable

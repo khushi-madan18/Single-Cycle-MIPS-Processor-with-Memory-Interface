@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MIPS32 Single-Cycle Simulator</title>
+  <meta name="description" content="Interactive single-cycle MIPS processor: assembly to machine code conversion, animated datapath, registers, memory and Verilog RTL verification.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='6' width='20' height='20' rx='4' fill='%234f46e5'/%3E%3Cpath d='M11 2v4M16 2v4M21 2v4M11 26v4M16 26v4M21 26v4M2 11h4M2 16h4M2 21h4M26 11h4M26 16h4M26 21h4' stroke='%234f46e5' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- ============================== Header ============================== -->
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-chip" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="6" y="6" width="20" height="20" rx="4"/>
+        <path d="M11 2v4M16 2v4M21 2v4M11 26v4M16 26v4M21 26v4M2 11h4M2 16h4M2 21h4M26 11h4M26 16h4M26 21h4"/>
+        <text x="16" y="20" text-anchor="middle">M</text>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-title">MIPS32 <b>Single-Cycle</b></span>
+        <span class="brand-sub">Processor with Memory Interface</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="statusPill" class="status-pill ready"><span class="dot"></span><span class="label">READY</span></span>
+      <span id="rtlBadge" class="rtl-badge hidden" title="Every executed cycle matches the Verilog simulation">
+        <svg viewBox="0 0 20 20"><path d="M5 10.5l3 3 7-7"/></svg><span>RTL match</span>
+      </span>
+      <div class="select-wrap" title="Sample programs">
+        <svg viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></svg>
+        <select id="programSelect" aria-label="Sample program"></select>
+      </div>
+      <label class="btn ghost" title="Load an .asm file">
+        <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+        <span>Load</span>
+        <input id="fileInput" type="file" accept=".asm,.s,.txt" hidden>
+      </label>
+      <button id="themeBtn" class="icon-btn" title="Toggle dark mode" aria-label="Toggle dark mode">
+        <svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>
+      </button>
+      <button id="helpBtn" class="icon-btn" title="Help & shortcuts" aria-label="Help">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3M12 17h.01"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================== Main ============================== -->
+  <main class="workspace" id="workspace">
+    <!-- -------- Left: editor -------- -->
+    <section class="pane editor-pane">
+      <div class="pane-head">
+        <div class="tabs small" role="tablist">
+          <span class="file-name"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg><span id="fileName">basic_test.asm</span><span id="dirtyDot" class="dirty hidden" title="Modified">●</span></span>
+        </div>
+        <div id="asmState" class="asm-state ok"><span class="dot"></span><span>Assembled</span></div>
+      </div>
+
+      <div class="editor-wrap">
+        <!-- floating run controls -->
+        <div class="run-controls" id="runControls">
+          <button class="rc" id="btnReset" title="Reset (R)"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.7L3 8"/><path d="M3 3v5h5"/></svg></button>
+          <button class="rc" id="btnBack" title="Step back (Shift+F10 / ←)"><svg viewBox="0 0 24 24"><path d="M19 5L9 12l10 7zM5 5v14"/></svg></button>
+          <button class="rc primary" id="btnRun" title="Run / Pause (F5 / Space)">
+            <svg class="play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>
+            <svg class="pause" viewBox="0 0 24 24"><path d="M7 4h4v16H7zM14 4h4v16h-4z"/></svg>
+          </button>
+          <button class="rc" id="btnStep" title="Step one clock cycle (F10 / →)"><svg viewBox="0 0 24 24"><path d="M5 5l10 7-10 7zM19 5v14"/></svg></button>
+          <button class="rc" id="btnEnd" title="Run to halt (F8)"><svg viewBox="0 0 24 24"><path d="M4 5l8 7-8 7zM12 5l8 7-8 7z"/></svg></button>
+          <span class="rc-sep"></span>
+          <div class="speed" title="Run speed (cycles per second)">
+            <svg viewBox="0 0 24 24"><path d="M12 14l4-4M3.3 17a10 10 0 1117.4 0"/></svg>
+            <input id="speed" type="range" min="1" max="30" value="4">
+            <span id="speedVal">4/s</span>
+          </div>
+        </div>
+
+        <div class="editor" id="editor">
+          <div class="editor-inner">
+            <div class="gutter" id="gutter" aria-hidden="true"></div>
+            <div class="code-area">
+              <div class="line-layer" id="lineLayer" aria-hidden="true"></div>
+              <pre class="highlight" id="highlight" aria-hidden="true"></pre>
+              <textarea id="source" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off" aria-label="Assembly source"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="error-bar hidden" id="errorBar"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg><span id="errorText"></span></div>
+      </div>
+    </section>
+
+    <div class="splitter v" id="splitV" title="Drag to resize"></div>
+
+    <!-- -------- Right: panels -------- -->
+    <section class="pane side-pane" id="sidePane">
+      <!-- Stats -->
+      <article class="panel" data-panel="stats">
+        <button class="panel-head">
+          <span class="ph-title"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8M14 7h7v7"/></svg>Stats</span>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="panel-body"><div class="panel-inner">
+          <div class="stats-grid" id="statsGrid"></div>
+          <div class="mix" id="mixBars"></div>
+        </div></div>
+      </article>
+
+      <!-- Datapath -->
+      <article class="panel" data-panel="datapath">
+        <button class="panel-head">
+          <span class="ph-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M10 6.5h4.5a2 2 0 012 2V14"/></svg>Datapath</span>
+          <span class="ph-extra" id="dpInstr"></span>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="panel-body"><div class="panel-inner">
+          <div class="stage-strip" id="stageStrip">
+            <span data-stage="IF">IF<small>Fetch</small></span>
+            <span data-stage="ID">ID<small>Decode</small></span>
+            <span data-stage="EX">EX<small>Execute</small></span>
+            <span data-stage="MEM">MEM<small>Memory</small></span>
+            <span data-stage="WB">WB<small>Write-back</small></span>
+            <span class="strip-note">all five happen inside <b>one</b> clock cycle</span>
+          </div>
+          <div class="datapath-wrap" id="datapath"></div>
+          <div class="dp-legend">
+            <span><i class="lg data"></i>active data path</span>
+            <span><i class="lg idle"></i>unused this cycle</span>
+            <span><i class="lg ctl1"></i>control = 1</span>
+            <span><i class="lg ctl0"></i>control = 0</span>
+            <span class="muted">hover a block for details</span>
+          </div>
+        </div></div>
+      </article>
+
+      <div class="panel-row">
+        <!-- Registers -->
+        <article class="panel" data-panel="registers">
+          <button class="panel-head">
+            <span class="ph-title"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><path d="M7 7h.01M7 17h.01"/></svg>Registers</span>
+            <span class="seg" id="regFmt" onclick="event.stopPropagation()"><button data-v="hex" class="on">HEX</button><button data-v="dec">DEC</button></span>
+            <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="panel-body"><div class="panel-inner">
+            <div class="pc-row"><span>PC</span><code id="pcVal">0x00000000</code></div>
+            <div class="regs" id="regs"></div>
+          </div></div>
+        </article>
+
+        <!-- Data memory -->
+        <article class="panel" data-panel="memory">
+          <button class="panel-head">
+            <span class="ph-title"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 4v16M15 4v16M4 9h16M4 15h16"/></svg>Data Memory</span>
+            <span class="seg" id="memView" onclick="event.stopPropagation()"><button data-v="used" class="on">USED</button><button data-v="all">ALL 256</button></span>
+            <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="panel-body"><div class="panel-inner">
+            <div class="mem" id="mem"></div>
+          </div></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================== Bottom drawer ============================== -->
+  <div class="splitter h" id="splitH" title="Drag to resize"></div>
+  <section class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div class="tabs" role="tablist" id="drawerTabs">
+        <button class="tab on" data-tab="conversion"><svg viewBox="0 0 24 24"><path d="M4 7h11l-3-3M20 17H9l3 3"/></svg>Conversion</button>
+        <button class="tab" data-tab="listing"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Machine Code</button>
+        <button class="tab" data-tab="timeline"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>Cycles</button>
+        <button class="tab" data-tab="verify"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>RTL Verification</button>
+        <span class="tab-ink" id="tabInk"></span>
+      </div>
+      <button class="icon-btn small" id="drawerToggle" title="Collapse / expand"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+    </div>
+    <div class="drawer-body" id="drawerBody">
+      <div class="tab-page on" data-page="conversion"><div id="conversion" class="conversion"></div></div>
+      <div class="tab-page" data-page="listing"><div id="listing" class="listing"></div></div>
+      <div class="tab-page" data-page="timeline"><div id="timeline" class="timeline"></div></div>
+      <div class="tab-page" data-page="verify"><div id="verify" class="verify"></div></div>
+    </div>
+  </section>
+
+  <!-- ============================== Overlays ============================== -->
+  <div class="tooltip" id="tooltip" role="tooltip"></div>
+  <div class="toasts" id="toasts"></div>
+
+  <div class="modal hidden" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="modal-card">
+      <button class="icon-btn modal-close" data-close>&times;</button>
+      <h2 id="helpTitle">How to use the simulator</h2>
+      <div class="help-grid">
+        <div>
+          <h3>Workflow</h3>
+          <ol>
+            <li>Pick a sample program or type your own assembly. It is assembled automatically as you type.</li>
+            <li>Press <kbd>Step</kbd> to execute one clock cycle (one whole instruction) and watch it travel through the datapath.</li>
+            <li>Open <b>Conversion</b> to see every step from assembly text to the 32-bit word, then how the hardware decodes and executes it.</li>
+            <li><b>RTL Verification</b> compares each cycle with the real Verilog simulation (Icarus Verilog).</li>
+          </ol>
+          <h3>Supported instructions</h3>
+          <p><code>add sub and or slt</code> · <code>addi</code> · <code>lw sw</code> · <code>beq</code> · <code>j</code> · <code>nop</code> · <code>halt</code><br>
+          Directives: <code>.data</code> <code>.text</code> <code>label: .word 1, 2, 3</code> <code>.space n</code></p>
+        </div>
+        <div>
+          <h3>Keyboard</h3>
+          <table class="keys">
+            <tr><td><kbd>F10</kbd> / <kbd>→</kbd></td><td>Step</td></tr>
+            <tr><td><kbd>Shift</kbd>+<kbd>F10</kbd> / <kbd>←</kbd></td><td>Step back</td></tr>
+            <tr><td><kbd>F5</kbd> / <kbd>Space</kbd></td><td>Run / pause</td></tr>
+            <tr><td><kbd>F8</kbd></td><td>Run to halt</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Reset</td></tr>
+            <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td>Switch bottom tab</td></tr>
+          </table>
+          <p class="muted">Arrow keys and Space work when the editor is not focused. Click a line number to set a breakpoint.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/isa.js"></script>
+  <script src="data/programs.js"></script>
+  <script src="data/rtl_traces.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/datapath.js"></script>
+  <script src="js/conversion.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

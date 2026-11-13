@@ -1,0 +1,10 @@
+# FPGA synthesis of the complete system (core + instruction memory + data
+# memory) for a Xilinx 7-series device (e.g. the Artix-7 on Basys-3 / Nexys
+# A7 boards). The instruction memory is pre-loaded with the array-sum program.
+# Run from the repository root:   yosys -s synthesis/synth_fpga.ys
+read_verilog src/pc.v src/control_unit.v src/register_file.v src/sign_extension.v
+read_verilog src/alu.v src/alu_control.v src/branch_jump_logic.v src/mips_core.v
+read_verilog src/instruction_memory.v src/data_memory.v src/mips_cpu.v
+chparam -set IMEM_FILE "programs/array_sum.mem" -set DMEM_FILE "programs/array_sum_data.mem" mips_cpu
+synth_xilinx -top mips_cpu -family xc7 -flatten
+tee -o synthesis/fpga_xc7_stats.txt stat
