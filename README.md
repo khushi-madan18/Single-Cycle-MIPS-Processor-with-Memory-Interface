@@ -2,6 +2,39 @@
 
 A 32-bit single-cycle MIPS processor written in Verilog-2001 (Icarus Verilog compatible). Every instruction is fetched, decoded, executed and written back in one clock cycle. The processor core talks to a separate instruction memory and data memory through a **memory interface** (Harvard architecture).
 
+MCA project, Phase I submission.
+
+## Project links
+
+| | Link |
+|---|---|
+| **Demo video**  | [Watch on Google Drive](https://drive.google.com/file/d/1OvmcGS92EaxGDMzltkKdzJ9j99zIK0Cn/view?usp=sharing) |
+| **Project report**  | [`project-report/MCA-report.pdf`](project-report/MCA-report.pdf) |
+| **Live simulator** | https://khushi-madan18.github.io/Single-Cycle-MIPS-Processor-with-Memory-Interface/ |
+| **Source code** | https://github.com/khushi-madan18/Single-Cycle-MIPS-Processor-with-Memory-Interface |
+| **Logisim circuit** | [`logisim/mips_single_cycle.circ`](logisim/mips_single_cycle.circ) |
+
+
+## Team
+
+| Member | Enrollment no. | Contribution |
+|---|---|---|
+| Manpreet Singh | 2401010263 | Interactive web simulator, project report and video (`ui/`, `project-report/`) |
+| Avneet Singh | 2401010117 | ALU, datapath and instruction execution (`src/alu.v`, `src/alu_control.v`, `src/sign_extension.v`, `tools/mips_asm.py`, `programs/`) |
+| Khushi | 2401010225 | Processor architecture and Logisim circuit (`docs/architecture.md`, `logisim/`, `docs/logisim/`) |
+| Satvik Prasad | 2401020055 | Processor modules and RTL implementation (`src/mips_cpu.v`, `src/mips_core.v`, `src/control_unit.v`, `src/register_file.v`, `src/pc.v`, `synthesis/`) |
+| Riya Yadav | 2401010390 | Memory, branching and testbench verification (`src/data_memory.v`, `src/instruction_memory.v`, `src/branch_jump_logic.v`, `testbench/`, `tools/run_tests.py`, `docs/waveforms/`) |
+
+
+## Results at a glance
+
+| Check | Result |
+|---|---|
+| Full regression (`make test`) | **9/9 passed**: ALU and control-unit unit tests, system test, 4 programs checked cycle by cycle against the Python golden model, web-UI model vs RTL, Logisim circuit vs RTL |
+| Logisim circuit vs Verilog | 265/265 clock cycles match across the 4 sample programs |
+| `array_sum.asm` | 54 cycles, CPI 1.00, result `110` |
+| FPGA size (Xilinx Artix-7) | about 370 LUTs, under 2 % of an XC7A35T |
+
 ## Supported instructions
 
 | Instruction | Type | Operation |
@@ -25,6 +58,8 @@ A 32-bit single-cycle MIPS processor written in Verilog-2001 (Icarus Verilog com
 ├── logisim/        the Logisim circuit (.circ) to open in Logisim-evolution + program images
 ├── synthesis/      Yosys scripts and the synthesis report
 ├── docs/           architecture.md, waveforms/ and logisim/ (circuit diagrams)
+├── project-report/ IEEE-format project report (MCA-report.pdf)
+├── video/          demo video subtitles (.srt); the video itself is on Google Drive
 ├── simulation/     generated .vvp / .vcd / trace files (git-ignored)
 └── Makefile
 ```
@@ -79,7 +114,7 @@ python3 -m http.server 8765 --directory ui     # then open http://localhost:8765
 
 (Opening `ui/index.html` directly also works.)
 
-**Live version:** https://khushi-madan18.github.io/Single-Cycle-MIPS-Processor-with-Memory-Interface/. It is published by `.github/workflows/pages.yml` on every push to `main` that changes `ui/`. One-time setup by the repo owner: **Settings → Pages → Source: GitHub Actions**.
+**Live version:** https://khushi-madan18.github.io/Single-Cycle-MIPS-Processor-with-Memory-Interface/. It is published by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push to `main` that changes `ui/`. One-time setup by the repo owner: **Settings → Pages → Source: GitHub Actions**, then **Actions → Deploy UI to GitHub Pages → Run workflow**.
 
 * **Editor**: syntax highlighting, assembles as you type, inline errors, breakpoints (click a line number), sample programs, and loading your own `.asm` file.
 * **Run controls**: step, step back, run with adjustable speed, run to halt, reset. Keyboard: `F10`/`→` step, `←` back, `Space` run, `F8` to halt.
@@ -157,3 +192,14 @@ See [`synthesis/synthesis_report.md`](synthesis/synthesis_report.md). In short: 
 - Reset is synchronous and active-high; it only resets the PC. Registers and memories are initialised at start-up.
 - A program "halts" by jumping to itself (`halt` pseudo-instruction); the testbench detects this.
 - Assembler-generated `.mem` files are padded to 256 words so `$readmemh` fills the whole memory.
+
+## References
+
+1. D. A. Patterson and J. L. Hennessy, *Computer Organization and Design: The Hardware/Software Interface*, 5th ed., Morgan Kaufmann, 2014.
+2. MIPS Technologies, *MIPS32 Architecture for Programmers, Volume II: The MIPS32 Instruction Set*, Rev. 2.00, 2003.
+3. *IEEE Standard for Verilog Hardware Description Language*, IEEE Std 1364-2005, 2006.
+4. Icarus Verilog: https://steveicarus.github.io/iverilog/
+5. Yosys Open SYnthesis Suite: https://yosyshq.readthedocs.io/
+6. Logisim-evolution: https://github.com/logisim-evolution/logisim-evolution
+
+The full reference list is in the [project report](project-report/MCA-report.pdf).
