@@ -114,8 +114,6 @@ python3 -m http.server 8765 --directory ui     # then open http://localhost:8765
 
 (Opening `ui/index.html` directly also works.)
 
-**Live version:** https://khushi-madan18.github.io/Single-Cycle-MIPS-Processor-with-Memory-Interface/. It is published by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push to `main` that changes `ui/`. One-time setup by the repo owner: **Settings → Pages → Source: GitHub Actions**, then **Actions → Deploy UI to GitHub Pages → Run workflow**.
-
 * **Editor**: syntax highlighting, assembles as you type, inline errors, breakpoints (click a line number), sample programs, and loading your own `.asm` file.
 * **Run controls**: step, step back, run with adjustable speed, run to halt, reset. Keyboard: `F10`/`→` step, `←` back, `Space` run, `F8` to halt.
 * **Animated datapath**: the instruction flows through IF → ID → EX → MEM → WB. Active wires and blocks light up, control signals show their values, and live values sit on the wires. Hover any block to see which Verilog module it is.
