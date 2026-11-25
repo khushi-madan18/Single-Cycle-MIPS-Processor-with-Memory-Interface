@@ -200,4 +200,4 @@ See [`synthesis/synthesis_report.md`](synthesis/synthesis_report.md). In short: 
 5. Yosys Open SYnthesis Suite: https://yosyshq.readthedocs.io/
 6. Logisim-evolution: https://github.com/logisim-evolution/logisim-evolution
 
-The full reference list is in the [project report](project-report/MCA-report.pdf).
+The full reference list is in the [project report](project-report/MCA-report.pdf)
