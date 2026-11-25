@@ -47,7 +47,7 @@
   /* ------------------------------------------------------------ theme */
   function applyTheme(t) { document.documentElement.dataset.theme = t; store.set("theme", t); }
   applyTheme(store.get("theme", window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
-  $("#themeBtn").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+  $("#themeBtn").addEventListener("click", () => { applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); wave.draw(); });
 
   /* ------------------------------------------------------------ programs */
   function fillProgramSelect() {
@@ -126,6 +126,7 @@
     const r = currentRtl(); state.rtl = r && r.trace; state.rtlName = r && r.name;
     datapath.reset();
     $("#dpInstr").textContent = "";
+    if (window.VCD_FILES && VCD_FILES[state.sampleId] && state.waveKey !== state.sampleId && !state.waveCustom) loadWave(state.sampleId);
     setStatus("ready");
     renderAll(false);
   }
@@ -252,6 +253,7 @@
     renderListing();
     renderTimeline();
     renderVerify();
+    syncWave();
     setControls();
   }
 
@@ -268,6 +270,7 @@
     renderListing();
     renderTimeline();
     renderVerify();
+    syncWave();
     setControls();
   }
 
@@ -573,6 +576,42 @@
     return out;
   }
 
+  /* ------------------------------------------------------------ testbench + waveform */
+  const WAVE_LABEL = id => id === "mips_cpu" ? "mips_cpu.vcd · tb_mips_cpu.v" : `${id}.vcd · tb_program.v`;
+  const wave = new WaveViewer($("#wave"), {
+    onSource: id => { state.waveCustom = false; loadWave(id); },
+    onCustom: () => { state.waveKey = null; state.waveCustom = true; syncWave(); },
+    onCycle: k => gotoCycle(k),
+  });
+  function loadWave(id) {
+    if (!window.VCD_FILES || !VCD_FILES[id]) return;
+    state.waveKey = id;
+    wave.setSources(Object.keys(VCD_FILES).map(k => ({ id: k, label: WAVE_LABEL(k) })), id);
+    wave.load(VCD_FILES[id], `simulation/${id}.vcd`);
+    syncWave();
+  }
+  function waveLinked() {
+    const s = SAMPLE_PROGRAMS.find(p => p.id === state.sampleId);
+    return !!(state.waveKey && s && s.id === state.waveKey && s.source === editor.value && state.machine);
+  }
+  function syncWave() {
+    if (!wave.vcd) return;
+    const on = waveLinked();
+    wave.setLinked(on, on ? `Linked to simulator · ${state.lastRec ? "cycle " + state.lastRec.cycle : "click a cycle"}` : "");
+    wave.setCycle(on && state.lastRec ? state.lastRec.cycle : null, on);
+  }
+  // jump the simulator to clock cycle k (used by the waveform)
+  function gotoCycle(k) {
+    if (!state.prog) return;
+    stop(); resetMachine();
+    while (!state.machine.halted && state.machine.cycles <= k) stepOnce({ render: false });
+    if (state.lastRec) renderAfterStep(state.lastRec, false);
+  }
+  const tbView = new TestbenchView($("#testbench"), {
+    onWave: id => { state.waveCustom = false; loadWave(id); switchTab("wave"); },
+    onProgram: id => { const p = SAMPLE_PROGRAMS.find(x => x.id === id); if (p) loadSource(p.source, p.id + ".asm", p.id); },
+  });
+
   /* ------------------------------------------------------------ tabs & panels */
   function switchTab(name) {
     $$("#drawerTabs .tab").forEach(t => t.classList.toggle("on", t.dataset.tab === name));
@@ -580,6 +619,7 @@
     moveInk();
     store.set("tab", name);
     if (document.body.classList.contains("drawer-min")) toggleDrawer(false);
+    if (name === "wave") requestAnimationFrame(() => wave.draw());
     if (name === "timeline") { const p = $('[data-page="timeline"]'); setTimeout(() => p.scrollTo({ top: p.scrollHeight, left: p.scrollWidth, behavior: "smooth" }), 50); }
   }
   function moveInk() {
@@ -654,12 +694,13 @@
     else if (e.key === "ArrowLeft") { e.preventDefault(); back(); }
     else if (e.key === " ") { e.preventDefault(); $("#btnRun").click(); }
     else if (e.key === "r" || e.key === "R") resetMachine();
-    else if (["1", "2", "3", "4"].includes(e.key)) switchTab(["conversion", "listing", "timeline", "verify"][+e.key - 1]);
+    else if (["1", "2", "3", "4", "5", "6"].includes(e.key)) switchTab(["conversion", "listing", "timeline", "verify", "testbench", "wave"][+e.key - 1]);
     else if (e.key === "?") modal.classList.remove("hidden");
   });
 
   /* ------------------------------------------------------------ boot */
   fillProgramSelect();
+  tbView.render();
   const first = SAMPLE_PROGRAMS[0];
   state.sampleId = first.id; state.fileName = first.id + ".asm";
   $("#fileName").textContent = state.fileName;
@@ -668,5 +709,5 @@
   assemble(true);
   switchTab(store.get("tab", "conversion"));
   requestAnimationFrame(moveInk);
-  window.__mipsUI = { state, stepOnce, back, run, stop, runToEnd, resetMachine, loadSource, selectAddr, switchTab };
+  window.__mipsUI = { state, stepOnce, back, run, stop, runToEnd, resetMachine, loadSource, selectAddr, switchTab, wave, loadWave, gotoCycle };
 })();

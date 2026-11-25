@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MIPS32 Single-Cycle Simulator</title>
-  <meta name="description" content="Interactive single-cycle MIPS processor: assembly to machine code conversion, animated datapath, registers, memory and Verilog RTL verification.">
+  <meta name="description" content="Interactive single-cycle MIPS processor: assembly to machine code conversion, animated datapath, registers, memory, Verilog testbench results, simulation waveforms and RTL verification.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='6' width='20' height='20' rx='4' fill='%234f46e5'/%3E%3Cpath d='M11 2v4M16 2v4M21 2v4M11 26v4M16 26v4M21 26v4M2 11h4M2 16h4M2 21h4M26 11h4M26 16h4M26 21h4' stroke='%234f46e5' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -174,6 +174,8 @@
         <button class="tab" data-tab="listing"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Machine Code</button>
         <button class="tab" data-tab="timeline"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>Cycles</button>
         <button class="tab" data-tab="verify"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg>RTL Verification</button>
+        <button class="tab" data-tab="testbench"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 006 21h12a1.7 1.7 0 001.5-2.5L14 9V3"/><path d="M7 15h10"/></svg>Testbench</button>
+        <button class="tab" data-tab="wave"><svg viewBox="0 0 24 24"><path d="M2 17h3V7h4v10h4V7h4v10h5"/></svg>Waveform</button>
         <span class="tab-ink" id="tabInk"></span>
       </div>
       <button class="icon-btn small" id="drawerToggle" title="Collapse / expand"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
@@ -183,6 +185,8 @@
       <div class="tab-page" data-page="listing"><div id="listing" class="listing"></div></div>
       <div class="tab-page" data-page="timeline"><div id="timeline" class="timeline"></div></div>
       <div class="tab-page" data-page="verify"><div id="verify" class="verify"></div></div>
+      <div class="tab-page" data-page="testbench"><div id="testbench" class="tb"></div></div>
+      <div class="tab-page wave-page" data-page="wave"><div id="wave" class="wv"></div></div>
     </div>
   </section>
 
@@ -202,6 +206,8 @@
             <li>Press <kbd>Step</kbd> to execute one clock cycle (one whole instruction) and watch it travel through the datapath.</li>
             <li>Open <b>Conversion</b> to see every step from assembly text to the 32-bit word, then how the hardware decodes and executes it.</li>
             <li><b>RTL Verification</b> compares each cycle with the real Verilog simulation (Icarus Verilog).</li>
+            <li><b>Testbench</b> shows every Verilog testbench: its code, what it checks and its recorded console output.</li>
+            <li><b>Waveform</b> opens the VCD dump of the testbench run. The cursor follows the simulator; click a clock cycle to jump to it. Ctrl + wheel zooms.</li>
           </ol>
           <h3>Supported instructions</h3>
           <p><code>add sub and or slt</code> · <code>addi</code> · <code>lw sw</code> · <code>beq</code> · <code>j</code> · <code>nop</code> · <code>halt</code><br>
@@ -215,7 +221,7 @@
             <tr><td><kbd>F5</kbd> / <kbd>Space</kbd></td><td>Run / pause</td></tr>
             <tr><td><kbd>F8</kbd></td><td>Run to halt</td></tr>
             <tr><td><kbd>R</kbd></td><td>Reset</td></tr>
-            <tr><td><kbd>1</kbd>–<kbd>4</kbd></td><td>Switch bottom tab</td></tr>
+            <tr><td><kbd>1</kbd>–<kbd>6</kbd></td><td>Switch bottom tab</td></tr>
           </table>
           <p class="muted">Arrow keys and Space work when the editor is not focused. Click a line number to set a breakpoint.</p>
         </div>
@@ -226,9 +232,13 @@
   <script src="js/isa.js"></script>
   <script src="data/programs.js"></script>
   <script src="data/rtl_traces.js"></script>
+  <script src="data/sim_results.js"></script>
+  <script src="data/vcd_data.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/datapath.js"></script>
   <script src="js/conversion.js"></script>
+  <script src="js/waveform.js"></script>
+  <script src="js/testbench.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

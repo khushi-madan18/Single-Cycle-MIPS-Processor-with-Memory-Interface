@@ -20,3 +20,6 @@ synthesis/*_netlist.v
 __pycache__/
 
 .claude
+# rendered demo videos (upload to YouTube/Drive, link in README)
+video/*.mp4
+video/
