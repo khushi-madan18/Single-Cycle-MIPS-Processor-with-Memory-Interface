@@ -1,6 +1,10 @@
 # Publishes the web UI (ui/) to GitHub Pages.
 # One-time setup: repo Settings -> Pages -> Source: "GitHub Actions".
 # Runs on every push to main that changes ui/, or manually from the Actions tab.
+#
+# Upload and deploy run in two separate jobs (GitHub's recommended layout):
+# when both run in the same job, deploy-pages can look for the artifact before
+# it is visible and fail with 'No artifacts named "github-pages" were found'.
 name: Deploy UI to GitHub Pages
 
 on:
@@ -16,19 +20,24 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: ui
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ui
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
